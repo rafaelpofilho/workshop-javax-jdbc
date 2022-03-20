@@ -3,6 +3,7 @@ package gui;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
 
 import application.Main;
 import gui.util.Alerts;
@@ -35,20 +36,22 @@ public class MainViewController implements Initializable{
 	
 	@FXML
 	public void onMnuItemDepartmentAction() {
-//		loadView("/gui/DepartmentList.fxml");
-		loadView2("/gui/DepartmentList.fxml");
+		loadView("/gui/DepartmentList.fxml", (DepartmentListController controller) -> {
+			controller.setDepartmentService(new DepartmentService());
+			controller.updateTableView();
+		});
 	}
 	
 	@FXML
 	public void onMnuItemAboutAction() {
-		loadView("/gui/About.fxml");
+		loadView("/gui/About.fxml", x -> {});
 	}
 	
 	@Override
 	public void initialize(URL url, ResourceBundle rb) {
 	}
 	
-	private synchronized void loadView(String absoluteName) {
+	private synchronized <T> void loadView(String absoluteName, Consumer<T> initializingAction) {
 		try {
 			FXMLLoader loader = new FXMLLoader(getClass().getResource(absoluteName));
 			VBox newVBox = loader.load();
@@ -69,43 +72,14 @@ public class MainViewController implements Initializable{
 			
 			// Adicionar os ítens da tela que será chamada
 			mainVBox.getChildren().addAll(newVBox.getChildren());
+			
+			// executam a função passada como parâmetro em Consumer<T>
+			T controller = loader.getController();
+			initializingAction.accept(controller);
 		}
 		catch(IOException e) {
 			Alerts.showAlert("IO Exception", "Error loading view", e.getMessage(), AlertType.ERROR);
 		}
 	}
 	
-	private synchronized void loadView2(String absoluteName) {
-		try {
-			FXMLLoader loader = new FXMLLoader(getClass().getResource(absoluteName));
-			VBox newVBox = loader.load();
-			
-			Scene mainScene = Main.getMainScene();
-			
-			// pega o 1o elemento da tela principal (ScrollPane)
-			VBox mainVBox = (VBox) ((ScrollPane) mainScene.getRoot()).getContent();
-			
-			// Guardar o mainMenu para adicionar depois (1o filho de VBox)
-			Node mainMenu = mainVBox.getChildren().get(0);
-					
-			// Apagar os filhos atuais do VBox para depois adicionar novamente junto com os novos ítens da tela que será apresentada
-			mainVBox.getChildren().clear();
-			
-			// Adicionar novamente o mainMenu do formulário principal
-			mainVBox.getChildren().add(mainMenu);
-			
-			// Adicionar os ítens da tela que será chamada
-			mainVBox.getChildren().addAll(newVBox.getChildren());
-			
-			// instanciar a view no objeto controller
-			DepartmentListController controller = loader.getController();
-			// injetar dependência do DepartmentService no controller
-			controller.setDepartmentService(new DepartmentService());
-			// atualizar os dados na tela no tableview
-			controller.updateTableView();
-		}
-		catch(IOException e) {
-			Alerts.showAlert("IO Exception", "Error loading view", e.getMessage(), AlertType.ERROR);
-		}
-	}
 }
